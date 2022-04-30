@@ -27,16 +27,6 @@ app.get('/app/flip/call/:guess(heads|tails)/', (req, res, next) => {
 
 
 
-
-
-
-
-
-
-
-
-
-
 const express = require('express');
 const { exit } = require('process');
 const morgan = require('morgan');
