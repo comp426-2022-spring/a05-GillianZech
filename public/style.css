@@ -1,13 +1,43 @@
-/* There is very minimial style here intentionally to show how we can use the DOM to hide and show different elements to make a single page that does not have to be reloaded to navigate between views. **/
+body {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+}
+nav {
+  margin-top: 30px;
+  align-self: center;
+  width: 70%;
+  display: flex;
+  align-items: center;
+  justify-content:space-evenly;
+}
+button {
+  font-size: 1rem;
+  padding: 6px;
+}
+div button {
+  font-size: 3vw;
+  border-radius: 50px;
+  padding: 20px;
+  background-color: rgb(44, 111, 255);
+  transition: 0.3s;
+}
+div button:hover {
+  background-color: rgb(0, 63, 199);
+}
 /* This sets the active button off from the inactive buttons. */
 button.active {
-  background: black;
+  background: rgb(44, 111, 255);
   color: white;
 }
 /* This shows the active div. */
 div.active {
-/*  border: 5px solid red; */
   display: block;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
 }
 /* This hides the inactive divs */
 div.inactive {

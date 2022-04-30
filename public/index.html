@@ -39,18 +39,15 @@
     <!-- The first div is just a landing page. -->
     <!-- All of the divs have default classes set so that they will show or not show depending on whether they are active or inactive, respectively -->
     <div id="home" class="active">
-      <h1>You want to flip a coin?</h1>
-      <p>Click the buttons above to flip a coin, flip many coins, or guess a coin flip. 
+      <h1>Let's flip some coins!</h1>
+      <p>Click the navigation buttons to flip a coin, flip many coins, or guess the outcome of a coin flip. 
     </div>    
     <!-- The second div has a button that interacts with the /app/flip/ endpoint. --> 
     <div id="single" class="inactive">
       <h1>Flip a coin</h1>
-      <!-- A "coin" button that creates an event for the flipCoin() function in main.js. -->
-		  <button id="coin">Flip it!</button>
-      <!-- A result paragraph-->
+		  <button id="coin">Flip!</button>
 		  <h2>Result</h2>
 		  <p><span id="result"></span></p>
-      <!-- An image of a US quarter (North Carolina variant) will be replaced by an image corresponding to the response -->
 		  <img src="assets/img/coin.png" id="quarter" class="bigcoin">      
     </div>
     <!-- The third div has a form that interacts with the /app/flip/coins/ endpoint. -->
@@ -63,7 +60,7 @@
 					<strong>How many coins?</strong>
 				</label>
 				<input type="number" name="number" id="number">
-				<input type="submit" value="Flip 'em!">
+				<input type="submit" value="Flip!">
 			</form>
 			<h2>Results</h2>
       <!-- These empty p elements will get rewritten when the flipCoins() function processes the response. -->
@@ -87,7 +84,7 @@
           <option value="tails">Tails</option>
         </select>
         <!-- The submit event triggers the flipCall() function in main.js -->
-        <input type="submit" value="Flip it!">
+        <input type="submit" value="Flip!">
       </form>
       <h2>Results</h2>
       <!-- These empty spans will be replaced by the result data -->
