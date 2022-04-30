@@ -1,203 +1,166 @@
-const express = require('express');
-
-app.use(express.static('./public'));
-app.use(express.json());
-// Focus div based on nav button click
-
 // Flip one coin and show coin image to match result when button clicked
-
+// Button coin flip element in div#single
+const coin = document.getElementById("coin")
+// Add event listener for coin button in div#single
+coin.addEventListener("click", flipCoin)
+// Set up an asynchronous function so that it will await a response.
+async function flipCoin() {
+    // Build up the endpoint URL
+    const endpoint = "app/flip/"
+    // DOM knows what the URI is so that we don't have to hard code it.
+    const url = document.baseURI+endpoint
+    // This sends a GET request to the API endpoint and waits for a response
+    await fetch(url)
+    // This receives the response as JSON
+    .then(function(response) {
+        return response.json();
+    })
+    // This processes the JSON into DOM calls that replace the existing corresponding elements in index.html 
+    .then(function(result) {
+        console.log(result);
+        document.getElementById("result").innerHTML = result.flip;
+        document.getElementById("quarter").setAttribute("src", "assets/img/"+result.flip+".png");
+    });
+};
 // Flip multiple coins and show coin images in table as well as summary results
 // Enter number and press button to activate coin flip series
-app.get('/app/flips/:number', (req, res, next) => {
-    const flips = coinFlips(req.params.number)
-    const count = countFlips(flips)
-    res.status(200).json({"raw":flips,"summary":count})
-});
-// Guess a flip by clicking either heads or tails button
-app.get('/app/flip/call/:guess(heads|tails)/', (req, res, next) => {
-    const game = flipACoin(req.params.guess)
-    res.status(200).json(game)
-})
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const express = require('express');
-const { exit } = require('process');
-const morgan = require('morgan');
-var fs = require('fs');
-var app = express();
-const db = require("./database.js");
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-const args = require('minimist')(process.argv.slice(2));
-// console.log(args)
-const help = (`
-server.js [options]
-
---port	    Set the port number for the server to listen on. Must be an integer
-            between 1 and 65535.
-
---debug	    If set to true, creates endlpoints /app/log/access/ which returns
-            a JSON access log from the database and /app/error which throws 
-            an error with the message "Error test successful." Defaults to 
-            false.
-
---log	    If set to false, no log files are written. Defaults to true.
-            Logs are always written to database.
-
---help	    Return this message and exit.
-`)
-var port = 5000;
-var debug = false;
-var log = true;
-if (args["help"] == true | args["help"] == "true") {
-    console.log(help)
-    exit(0);
+// The flip many coins form in div#multi 
+const coins = document.getElementById("coins")
+// Add event listener for coins form in div#multi
+coins.addEventListener("submit", flipCoins)
+// Create the submit handler that will run when the submit button ("Flip 'em!) is pressed.
+async function flipCoins(event) {
+    // Because we are using an event, we need to remove the default browser event, which is a reload.
+	event.preventDefault();
+    // Build up the endpoint URL
+	const endpoint = "app/flip/coins/"
+	const url = document.baseURI+endpoint
+    // This extracts the data object from the form so we can run it through the FormData API
+	const formEvent = event.currentTarget
+    // Give the data to FormData and wait for a response or log an error to console.
+	try {
+		const formData = new FormData(formEvent);
+        // Hand the form data off to the function that is actually going to interact with the API.
+		const flips = await sendFlips({ url, formData });
+        // Process the response and manipulate some elements in div#multi.
+		console.log(flips);
+        // Present the summary information.
+		document.getElementById("heads").innerHTML = "Heads: "+flips.summary.heads;
+		document.getElementById("tails").innerHTML = "Tails: "+flips.summary.tails;
+        // This calls a function what will make a list of coin images based on the array of coin flip results.
+        // See below for coinList() function.
+        document.getElementById("coinlist").innerHTML = coinList(flips.raw);
+	} catch (error) {
+		console.log(error);
+	}
 }
-if (args["debug"] == true | args["debug"] == "true") {
-    debug = true;
-    // console.log("debugging turned on")
+// Guess a coin flip by making a selection and pressing the button.
+// This uses a form in div#guesscoin with a selector to input the value to be sent to the API.
+const call = document.getElementById("call")
+// Add event listener for coins form in div#guesscoin
+call.addEventListener("submit", flipCall)
+// Create the submit handler (just like before for div#multi.
+async function flipCall(event) {
+    // Prevent the default reload on event.
+	event.preventDefault();
+    // Build the url string.
+	const endpoint = "app/flip/call/"
+	const url = document.baseURI+endpoint
+    // Extract the data from the form.
+	const formEvent = event.currentTarget
+    // Give the data to FormData and wait for a response or log an error to console.
+	try {
+		const formData = new FormData(formEvent); 
+        // Hand the form data off to the function that is actually going to interact with the API.
+		const results = await sendFlips({ url, formData });
+        // Process the results.
+		console.log(results);
+        // Present the text results
+		document.getElementById("choice").innerHTML = "Guess: "+results.call;
+		document.getElementById("actual").innerHTML = "Actual: "+results.flip;
+		document.getElementById("results").innerHTML = "Result: "+results.result;
+        // Assemble a list containing images corresponding to the game results
+        document.getElementById("coingame").innerHTML = '<li><img src="assets/img/'+results.call+'.png" class="bigcoin" id="callcoin"></li><li><img src="assets/img/'+results.flip+'.png" class="bigcoin"></li><li><img src="assets/img/'+results.result+'.png" class="bigcoin"></li>';
+	} catch (error) {
+		console.log(error);
+	}
 }
-if (args["log"] === false | args["log"] === "false") {
-    log = false;
-    // console.log("no logs will be written")
-}
-if (args["port"] != null) {
-    args['port'];
-    const port_arg = args.port;
-    if (port_arg < 1 || port_arg > 65535) {
-        console.log("Port must be an integer between 1 and 65535.")
-        exit(1)
-    }
-    if (port_arg != null) {
-        port = port_arg;
-    }
-}
-
-const server = app.listen(port, () => {
-    console.log('App is running on port %PORT%'.replace('%PORT%', port));
-})
-
-app.get('/app', (req, res) => {
-    res.status(200).end('200 OK');
-    // res.type("text/plain");
-})
-
-app.use( (req, res, next) => {
-    let logdata = {
-        remoteaddr: req.ip,
-        remoteuser: req.user,
-        time: Date.now(),
-        method: req.method,
-        url: req.url,
-        protocol: req.protocol,
-        httpversion: req.httpVersion,
-        status: req.statusCode,
-        referer: req.headers['referer'],
-        useragent: req.headers['user-agent']
-    }
-    const stmt = db.prepare('INSERT INTO accesslog (remoteaddr, remoteuser, time, method, url, protocol, httpversion, status, referer, useragent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    stmt.run(logdata.remoteaddr, String(logdata.remoteuser), logdata.time, logdata.method, logdata.url, logdata.protocol, logdata.httpversion, logdata.status, logdata.referer, logdata.useragent)
-    next()
-});
-
-if (debug) {
-    app.get("/app/log/access", (req, res, next) => {
-        try {
-            const stmt = db.prepare('SELECT * FROM accesslog').all()
-            res.status(200).json(stmt) // error on this line
-        
-        } catch(e) {
-            console.error(e)
-        }
-    });
-    app.get("/app/error", (req, res) => {
-        throw new Error('Error test successful.')
-    })
+// Create a data sender to sent POST request objects from FormData to send to the API using fetch()
+async function sendFlips({ url, formData }) {
+    // Extract the form data from the FormData object
+	const plainFormData = Object.fromEntries(formData.entries());
+    // Turn the FormData into JSON
+	const formDataJson = JSON.stringify(plainFormData);
+    // Show the console what is going to be sent in the API message body
+	console.log(formDataJson);
+    // Set up the request object for fetch()
+	const options = {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			Accept: "application/json"
+		},
+		body: formDataJson
+	};
+    // Send the request and wait for the response
+	const response = await fetch(url, options);
+    // Pass the response back to the event handler
+	return response.json()
 }
 
-if (log) {
-    // Use morgan for logging to files
-    // Create a write stream to append (flags: 'a') to a file
-    const accessLog = fs.createWriteStream('access.log', { flags: 'a' })
-    // Set up the access logging middleware
-    app.use(morgan('combined', { stream: accessLog }))
+// Navigation Buttons
+// This is EXTREMELY rudimentary, but shows you what is happening very clearly when each button is pressed.
+// Each time you press one of the nav buttons, it sets its class to "active", and all the others to "".
+// It also sets the corresponding div to "active" and all the others to "inactive".
+// These are what is called in "onclick=" for each button.
+function homeNav() {
+  document.getElementById("homenav").className = "active";
+  document.getElementById("home").className = "active";
+  document.getElementById("singlenav").className = "";
+  document.getElementById("single").className = "inactive";
+  document.getElementById("multinav").className = "";
+  document.getElementById("multi").className = "inactive";
+  document.getElementById("guessnav").className = "";
+  document.getElementById("guesscoin").className = "inactive";
 }
-
-app.get('/app/flip', (req, res) => {
-    res.status(200).json({ 'flip': coinFlip() })
-})
-
-app.get('/app/flips/:number', (req, res) => {
-    arr = coinFlips(req.params.number)
-    ay = countFlips(arr)
-    result = arr + ay
-    res.status(200).json({ 'raw': arr,'summary': ay })
-})
-
-app.get('/app/flip/call/heads', (req, res) => {
-    res.status(200).json({ 'message': flipACoin('heads') })
-})
-
-app.get('/app/flip/call/tails', (req, res) => {
-    res.status(200).json({ 'message': flipACoin('tails') })
-})
-
-app.use(function(req, res) {
-    res.status(404).send("404 NOT FOUND");
-    // res.type("text/plain");
-})
-
-function coinFlip() {
-    return (Math.floor(Math.random() * 2) == 0) ? 'heads' : 'tails';
+function singleNav() {
+  document.getElementById("homenav").className = "";
+  document.getElementById("home").className = "inactive";
+  document.getElementById("singlenav").className = "active";
+  document.getElementById("single").className = "active";
+  document.getElementById("multinav").className = "";
+  document.getElementById("multi").className = "inactive";
+  document.getElementById("guessnav").className = "";
+  document.getElementById("guesscoin").className = "inactive";
 }
-
-function coinFlips(flips) {
-    let flip_array = [];
-    while (flips > 0) {
-        flip_array.push(coinFlip());
-        flips--;
-    }
-    return flip_array;
+function multiNav() {
+  document.getElementById("homenav").className = "";
+  document.getElementById("home").className = "inactive";
+  document.getElementById("singlenav").className = "";
+  document.getElementById("single").className = "inactive";
+  document.getElementById("multinav").className = "active";
+  document.getElementById("multi").className = "active";
+  document.getElementById("guessnav").className = "";
+  document.getElementById("guesscoin").className = "inactive";
 }
-
-function countFlips(array) {
-    let head = 0, tail = 0;
-    for (let item of array) {
-        if (item === "heads".valueOf()) {
-        head++;
-        }
-        else if (item === "tails".valueOf()) {
-        tail++;
-        }
-    }
-    return {heads: head, tails: tail}
-}
-
-function flipACoin(call) {
-    let flip_result = coinFlip(), win_result = 'lose';
-    if (flip_result == call) {
-        win_result = 'win'
-    }
-    return {
-        call: call,
-        flip: flip_result,
-        result: win_result 
-    };
+function guessNav() {
+  document.getElementById("homenav").className = "";
+  document.getElementById("home").className = "inactive";
+  document.getElementById("singlenav").className = "";
+  document.getElementById("single").className = "inactive";
+  document.getElementById("multinav").className = "";
+  document.getElementById("multi").className = "inactive";
+  document.getElementById("guessnav").className = "active";
+  document.getElementById("guesscoin").className = "active";
+} 
+// Make a list of coin images
+// This function takes an array of coin flip results and turns them into list elements with corresponding images.
+// This allows the DOM call above to put the list in the appropriate place and show a coin for each of the flips sent back from the server.
+function coinList(array) {
+  let text = "";
+  let arrayLength = array.length
+  for (let i = 0; i < arrayLength; i++) {
+    text += '<li><img src="assets/img/'+array[i]+'.png" class="bigcoin"></li>';
+  }
+  return text
 }
